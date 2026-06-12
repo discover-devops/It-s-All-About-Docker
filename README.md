@@ -405,4 +405,22 @@ Example:
 
 ---
 
-.
+ Want to learn Cloud, DevOps, AI, Architecture, and Engineering Career Growth?
+
+Join our community:
+
+YouTube
+https://www.youtube.com/@BuildAutomateArchitect
+
+Telegram
+https://t.me/BuildAutomateArchitect
+
+Here you'll find:
+Architecture Deep Dives
+Cloud & DevOps Learning
+AI & GenAI Concepts
+Real Industry Experiences
+Labs & Learning Resources
+Career Guidance
+
+Build. Automate. Architect.
