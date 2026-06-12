@@ -103,13 +103,13 @@ To run Zoom, do we need:
 
 | Requirement | Needed? |
 |-------------|---------|
-| Printer Drivers | ❌ No |
-| Microsoft Office | ❌ No |
-| Adobe Acrobat | ❌ No |
-| Zoom application code | ✅ Yes |
-| Required libraries | ✅ Yes |
-| Required binaries | ✅ Yes |
-| Required dependencies | ✅ Yes |
+| Printer Drivers | No |
+| Microsoft Office |  No |
+| Adobe Acrobat |  No |
+| Zoom application code |  Yes |
+| Required libraries |  Yes |
+| Required binaries |  Yes |
+| Required dependencies |  Yes |
 
 **Zoom only needs its code + libraries + binaries + dependencies. Nothing more.**
 
@@ -299,6 +299,8 @@ docker run nginx
 | Docker | Orchestrates namespaces + cgroups + filesystems behind a simple CLI |
 
 > Docker did not invent containers. Docker made containers easy.
+
+Bare Metal → Virtualization → Containers → Processes → Isolation → Docker
 
 ---
 
