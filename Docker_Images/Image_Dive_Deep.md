@@ -612,4 +612,289 @@ To combine multiple image layers and the writable container layer into one files
 
 That's usually enough depth for Docker internals without diving into kernel source code.
 
+---
+---
+---
+
+# Topic 4
+
+
+# Copy-on-Write (CoW) Simplified
+
+## Context
+
+In the previous section, we learned that Docker images consist of multiple read-only layers.
+
+When a container starts, Docker adds one writable layer on top.
+
+Question:
+
+> If image layers are read-only, how can a container modify files?
+
+The answer is Copy-on-Write.
+
+---
+
+## The Core Idea
+
+Docker does not copy files unless a write operation occurs.
+
+This makes containers:
+
+* Fast to start
+* Lightweight
+* Efficient in storage usage
+
+---
+
+## Reading a File
+
+Suppose the image contains:
+
+```text
+/app/config.json
+```
+
+Container reads the file:
+
+```bash
+cat /app/config.json
+```
+
+Docker checks:
+
+```text
+Step 1: Writable Layer → File not found
+
+Step 2: Image Layers → File found
+
+Step 3: Read file directly
+```
+
+Result:
+
+```text
+No file copy occurs
+```
+
+Reading is very fast.
+
+---
+
+## Creating a New File
+
+Container creates:
+
+```bash
+touch /app/data.db
+```
+
+Docker stores it directly in:
+
+```text
+Writable Container Layer
+```
+
+Result:
+
+```text
+Image layers remain unchanged
+```
+
+---
+
+## Modifying an Existing File
+
+Suppose:
+
+```text
+/app/config.json
+```
+
+exists in a read-only image layer.
+
+Container runs:
+
+```bash
+echo "new config" > /app/config.json
+```
+
+Docker cannot modify the image layer because it is read-only.
+
+Instead:
+
+```text
+Step 1: Locate file in image layer
+
+Step 2: Copy file to writable layer
+
+Step 3: Modify copied file
+
+Step 4: Use modified version
+```
+
+This process is called:
+
+```text
+Copy-on-Write
+```
+
+---
+
+## Visual Representation
+
+```text
+Before Write
+
+Writable Layer
+----------------
+(empty)
+
+Image Layer
+----------------
+config.json
+```
+
+After Write:
+
+```text
+Writable Layer
+----------------
+config.json (modified)
+
+Image Layer
+----------------
+config.json (original)
+```
+
+Container always sees:
+
+```text
+Modified Version
+```
+
+because the writable layer sits on top.
+
+---
+
+## Why Docker Uses Copy-on-Write
+
+### Faster Container Startup
+
+When a container starts:
+
+```text
+No files are copied
+```
+
+Docker simply mounts layers.
+
+Container starts almost instantly.
+
+---
+
+### Storage Efficiency
+
+100 containers can share:
+
+```text
+Ubuntu Layer
+Python Layer
+Application Layer
+```
+
+Only writable changes consume additional space.
+
+---
+
+### Image Protection
+
+Original image layers never change.
+
+Benefits:
+
+* Predictable behavior
+* Safe rollbacks
+* Consistent deployments
+
+---
+
+## Demonstration
+
+Start a container:
+
+```bash
+docker run -it --name cow-demo ubuntu:22.04 bash
+```
+
+Create a file:
+
+```bash
+echo "Docker Rocks" > /tmp/test.txt
+```
+
+Verify:
+
+```bash
+cat /tmp/test.txt
+```
+
+Exit:
+
+```bash
+exit
+```
+
+Commit the container:
+
+```bash
+docker commit cow-demo cow-image
+```
+
+Inspect image history:
+
+```bash
+docker history cow-image
+```
+
+Notice Docker creates a new layer containing your changes.
+
+---
+
+## Why Databases Should Use Volumes
+
+Copy-on-Write works well for applications.
+
+However, databases constantly modify files.
+
+Every write operation must pass through the container layer.
+
+For heavy-write workloads:
+
+```text
+MySQL
+PostgreSQL
+MongoDB
+Redis
+```
+
+Use:
+
+```text
+Docker Volumes
+```
+
+Volumes bypass the image layer system and write directly to the host filesystem.
+
+---
+
+## Key Takeaway
+
+Docker images are read-only.
+
+When a container modifies an existing file, Docker copies that file from the image layer into the container's writable layer and then modifies the copy.
+
+This behavior is called Copy-on-Write and is one of the key reasons containers are fast, lightweight, and storage-efficient.
+
+
 
