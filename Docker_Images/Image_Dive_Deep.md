@@ -402,3 +402,214 @@ OverlayFS stacks these layers together and presents them as a single filesystem.
 
 When a container starts, Docker adds a thin writable layer on top. All container changes are stored there, while the underlying image layers remain unchanged.
 
+---
+---
+---
+
+# Topic 3
+
+Yes, exactly. You're connecting the dots correctly.
+
+## Is OverlayFS a Linux Kernel Feature?
+
+**Yes.**
+
+OverlayFS is implemented inside the Linux kernel.
+
+Verify:
+
+```bash id="3cwct5"
+cat /proc/filesystems | grep overlay
+```
+
+Output:
+
+```text id="c9ybxu"
+nodev   overlay
+```
+
+This proves the kernel supports OverlayFS.
+
+---
+
+## What Problem Does OverlayFS Solve?
+
+Suppose you have:
+
+```text id="rya7mx"
+Layer 1
+---------
+/bin/bash
+/etc/passwd
+
+Layer 2
+---------
+curl
+wget
+
+Layer 3
+---------
+app.py
+```
+
+Without OverlayFS:
+
+```text id="jq6v0k"
+3 separate filesystems
+```
+
+Container cannot use them directly.
+
+OverlayFS merges them into:
+
+```text id="s3k3hx"
+/bin/bash
+/etc/passwd
+curl
+wget
+app.py
+```
+
+Container sees one filesystem.
+
+---
+
+## Is OverlayFS Same as Union Filesystem?
+
+### Short Answer
+
+**Yes, conceptually.**
+
+OverlayFS is a type of Union Filesystem.
+
+---
+
+### What is a Union Filesystem?
+
+A Union Filesystem combines multiple filesystems into one unified view.
+
+```text id="glw7kt"
+Filesystem A
+      +
+Filesystem B
+      +
+Filesystem C
+      ↓
+Unified Filesystem
+```
+
+That's the fundamental idea.
+
+---
+
+### Historical Timeline
+
+Before OverlayFS, Linux had other Union Filesystems:
+
+```text id="h5b7kp"
+UnionFS
+AUFS
+OverlayFS
+```
+
+Docker initially used:
+
+```text id="uaxd4k"
+AUFS
+```
+
+because OverlayFS didn't exist in the kernel yet.
+
+Later:
+
+```text id="r9el4r"
+OverlayFS
+```
+
+was merged into the Linux kernel and became the preferred choice.
+
+Today most Docker installations use:
+
+```text id="0c7sn0"
+overlay2
+```
+
+which is built on OverlayFS.
+
+---
+
+## How Docker Uses OverlayFS
+
+Docker image:
+
+```text id="4w7f1m"
+Layer 3
+Layer 2
+Layer 1
+```
+
+Container start:
+
+```text id="sx22db"
+Writable Layer
+      ↓
+Layer 3
+      ↓
+Layer 2
+      ↓
+Layer 1
+```
+
+OverlayFS merges everything.
+
+Container sees:
+
+```text id="69iq5r"
+One Unified Filesystem
+```
+
+---
+
+## The Most Important Teaching Point
+
+I would tell students:
+
+> Docker did not invent image layering. Docker leverages a Linux kernel feature called OverlayFS. OverlayFS is a Union Filesystem implementation that merges multiple read-only image layers and a writable container layer into a single filesystem view.
+
+---
+
+## Nice Interview Question
+
+Ask students:
+
+> Is OverlayFS a Docker feature?
+
+Answer:
+
+```text id="5wcbdh"
+No.
+```
+
+Ask:
+
+> Then what is it?
+
+Answer:
+
+```text id="knj2c8"
+A Linux Kernel filesystem feature.
+```
+
+Ask:
+
+> Why does Docker use it?
+
+Answer:
+
+```text id="u3g1mv"
+To combine multiple image layers and the writable container layer into one filesystem visible to the container.
+```
+
+That's usually enough depth for Docker internals without diving into kernel source code.
+
+
