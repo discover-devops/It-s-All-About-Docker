@@ -1212,4 +1212,407 @@ dive
 
 These tools provide a safer and clearer view of Docker internals.
 
+---
+---
+---
+
+# Topic 6
+
+# Container Runtime Architecture
+
+## Context
+
+Earlier, we learned:
+
+```text
+Docker Image
+    ↓
+Docker Container
+```
+
+We used commands like:
+
+```bash
+docker pull nginx
+docker run nginx
+docker ps
+docker stop
+```
+
+But a natural question arises:
+
+> What actually happens when I run `docker run nginx`?
+
+Does Docker itself create the container?
+
+Does the Linux kernel create it?
+
+Why do we have Docker, containerd, runc, and the Linux kernel?
+
+Let's find out.
+
+---
+
+## The Runtime Stack
+
+When we run:
+
+```bash
+docker run nginx
+```
+
+multiple components work together.
+
+```text
+Docker CLI
+     ↓
+Docker Daemon
+     ↓
+containerd
+     ↓
+runc
+     ↓
+Linux Kernel
+```
+
+Finally:
+
+```text
+Container Starts
+```
+
+---
+
+## Docker CLI
+
+This is what we interact with every day.
+
+Examples:
+
+```bash
+docker run nginx
+docker ps
+docker images
+docker stop
+```
+
+Docker CLI does not create containers.
+
+Its job is simply:
+
+```text
+Accept User Commands
+```
+
+and send requests to the Docker Daemon.
+
+---
+
+## Docker Daemon (dockerd)
+
+The Docker Daemon is the management layer.
+
+Responsibilities:
+
+* Image management
+* Container management
+* Network management
+* Volume management
+* API handling
+
+Think of it as:
+
+```text
+Docker Control Plane
+```
+
+When you type:
+
+```bash
+docker run nginx
+```
+
+the CLI sends the request to dockerd.
+
+---
+
+## containerd
+
+Docker Daemon does not directly create containers.
+
+Instead it delegates to:
+
+```text
+containerd
+```
+
+containerd is an industry-standard container runtime.
+
+Responsibilities:
+
+* Container lifecycle management
+* Image pulling
+* Container execution
+* Container monitoring
+
+Many Kubernetes distributions talk directly to containerd.
+
+---
+
+## runc
+
+containerd delegates container creation to:
+
+```text
+runc
+```
+
+This is where the real magic happens.
+
+runc creates:
+
+* Namespaces
+* Cgroups
+* Mounts
+* Container process
+
+In simple terms:
+
+```text
+runc creates the isolated environment
+```
+
+---
+
+## Linux Kernel
+
+The Linux kernel provides the actual isolation mechanisms.
+
+Docker does not implement isolation.
+
+Linux does.
+
+Key kernel features:
+
+```text
+Namespaces
+Cgroups
+OverlayFS
+Capabilities
+Seccomp
+```
+
+Without Linux kernel support:
+
+```text
+No Containers
+```
+
+---
+
+## What Happens During docker run nginx?
+
+Step-by-step:
+
+```text
+docker run nginx
+        ↓
+Docker CLI
+        ↓
+Docker Daemon
+        ↓
+containerd
+        ↓
+runc
+        ↓
+Linux Kernel
+        ↓
+Container Process Starts
+```
+
+This entire process usually takes less than a second.
+
+---
+
+## Why So Many Layers?
+
+Students often ask:
+
+> Why can't Docker directly talk to the kernel?
+
+Good question.
+
+The answer is modularity.
+
+Each component has one responsibility.
+
+```text
+CLI         → User Interface
+
+Docker      → Management
+
+containerd  → Runtime Management
+
+runc        → Container Creation
+
+Kernel      → Isolation
+```
+
+This design makes Docker easier to maintain and extend.
+
+---
+
+## The Secret Hero: containerd-shim
+
+This is a fascinating internal component.
+
+Question:
+
+> What happens if Docker Daemon crashes?
+
+Most students assume:
+
+```text
+Containers Stop
+```
+
+Wrong.
+
+Containers continue running.
+
+Why?
+
+Because of:
+
+```text
+containerd-shim
+```
+
+The shim process sits between containerd and the container.
+
+Even if:
+
+```text
+dockerd
+```
+
+is restarted,
+
+the container keeps running.
+
+This is one of the reasons Docker is highly reliable.
+
+---
+
+## Demonstration
+
+Start a container:
+
+```bash
+docker run -d --name web nginx
+```
+
+Find processes:
+
+```bash
+ps -ef | grep nginx
+```
+
+Show containerd:
+
+```bash
+ps -ef | grep containerd
+```
+
+Show Docker daemon:
+
+```bash
+ps -ef | grep dockerd
+```
+
+Students can now see the runtime stack on the host.
+
+---
+
+## WOW Demonstration
+
+Run:
+
+```bash
+docker run -d nginx
+```
+
+Get container PID:
+
+```bash
+docker inspect -f '{{.State.Pid}}' <container-id>
+```
+
+Example:
+
+```text
+2451
+```
+
+Now:
+
+```bash
+ps -fp 2451
+```
+
+Students discover:
+
+```text
+Container = Linux Process
+```
+
+This is usually the biggest mindset shift in the entire Docker course.
+
+Containers are not mini virtual machines.
+
+They are isolated Linux processes.
+
+---
+
+## Interview Question
+
+Question:
+
+Who actually creates the container?
+
+Answer:
+
+```text
+runc
+```
+
+Question:
+
+Who provides isolation?
+
+Answer:
+
+```text
+Linux Kernel
+```
+
+Question:
+
+What keeps containers alive if Docker daemon restarts?
+
+Answer:
+
+```text
+containerd-shim
+```
+
+---
+
+## Key Takeaway
+
+Docker is not a single component.
+
+When we run a container, Docker CLI talks to the Docker Daemon, which delegates to containerd. containerd uses runc to create an isolated process using Linux kernel features such as namespaces, cgroups, and OverlayFS. The result is a lightweight container running as a Linux process.
+
+
 
