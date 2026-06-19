@@ -897,4 +897,319 @@ When a container modifies an existing file, Docker copies that file from the ima
 This behavior is called Copy-on-Write and is one of the key reasons containers are fast, lightweight, and storage-efficient.
 
 
+---
+---
+---
+
+# Topic 5
+
+# Where Docker Stores Everything & Inspecting Images
+
+## Context
+
+We have learned:
+
+* Images consist of layers
+* OverlayFS combines layers
+* Containers use Copy-on-Write
+
+A common question is:
+
+> Where does Docker store all this information?
+
+Docker stores its data under:
+
+```bash id="zax8ow"
+/var/lib/docker
+```
+
+This is Docker's working directory.
+
+---
+
+## Explore Docker Storage
+
+View the Docker root directory:
+
+```bash id="jlwmg8"
+docker info | grep "Docker Root Dir"
+```
+
+Example:
+
+```text id="xghx9n"
+Docker Root Dir: /var/lib/docker
+```
+
+Explore:
+
+```bash id="y7pgjv"
+cd /var/lib/docker
+
+ls -l
+```
+
+Example:
+
+```text id="zyr3ib"
+buildkit/
+containers/
+image/
+network/
+volumes/
+```
+
+---
+
+## Important Directories
+
+### containers/
+
+Stores container-specific information.
+
+Each container gets its own directory.
+
+```bash id="cr6vym"
+docker ps -a
+```
+
+Copy a container ID and inspect:
+
+```bash id="g9xqcw"
+ls /var/lib/docker/containers
+```
+
+Students will see container IDs matching Docker containers.
+
+---
+
+### volumes/
+
+Stores Docker volumes.
+
+Create a volume:
+
+```bash id="tcz84k"
+docker volume create myvolume
+```
+
+Verify:
+
+```bash id="7lwdz7"
+docker volume ls
+```
+
+Now check:
+
+```bash id="7jnj5s"
+ls /var/lib/docker/volumes
+```
+
+---
+
+### buildkit/
+
+Stores build cache and build metadata.
+
+Check build cache usage:
+
+```bash id="db7pmu"
+docker system df
+```
+
+---
+
+## Important Warning
+
+Never manually edit files inside:
+
+```text id="c7v0i4"
+/var/lib/docker
+```
+
+Always use Docker commands.
+
+Docker manages these files internally.
+
+---
+
+# Inspecting Images
+
+Docker provides commands to understand images without directly browsing internal directories.
+
+---
+
+## docker history
+
+Shows how an image was built.
+
+Example:
+
+```bash id="njlwmg"
+docker history ubuntu:22.04
+```
+
+Output:
+
+```text id="t6gv5g"
+IMAGE
+CMD ["/bin/bash"]
+ADD filesystem
+LABEL ...
+```
+
+Students learn:
+
+* Which instructions created layers
+* Layer sizes
+* Image build history
+
+---
+
+## docker inspect
+
+Shows complete metadata in JSON format.
+
+Example:
+
+```bash id="dyxgca"
+docker inspect ubuntu:22.04
+```
+
+Look for:
+
+```json id="s3pnmj"
+"RootFS": {
+   "Type": "layers"
+}
+```
+
+This proves:
+
+```text id="b3iswm"
+Image = Collection of Layers
+```
+
+---
+
+## Extract Specific Information
+
+Show image size:
+
+```bash id="pbslst"
+docker inspect ubuntu:22.04 \
+--format='{{.Size}}'
+```
+
+Show architecture:
+
+```bash id="wwjgyk"
+docker inspect ubuntu:22.04 \
+--format='{{.Architecture}}'
+```
+
+Show default command:
+
+```bash id="bdgn3q"
+docker inspect ubuntu:22.04 \
+--format='{{.Config.Cmd}}'
+```
+
+---
+
+# Bonus Tool: dive
+
+dive is one of the best Docker troubleshooting tools.
+
+It allows you to explore images layer by layer.
+
+Install:
+
+```bash id="7rj6ko"
+wget https://github.com/wagoodman/dive/releases/latest/download/dive_0.12.0_linux_amd64.deb
+
+apt install ./dive_0.12.0_linux_amd64.deb
+```
+
+Launch:
+
+```bash id="jgb6z4"
+dive ubuntu:22.04
+```
+
+---
+
+## Why dive is Useful
+
+Students can:
+
+* Navigate layer by layer
+* See files added in each layer
+* Identify wasted space
+* Understand image growth
+* Discover unnecessary files
+
+Typical findings:
+
+```text id="v90fvp"
+node_modules accidentally copied
+
+Large log files
+
+Temporary build files
+
+Duplicate content
+```
+
+---
+
+# Demonstration
+
+Show image history:
+
+```bash id="l3b89u"
+docker history ubuntu:22.04
+```
+
+Show image metadata:
+
+```bash id="rztfnd"
+docker inspect ubuntu:22.04
+```
+
+Show container directories:
+
+```bash id="wstffz"
+ls /var/lib/docker/containers
+```
+
+Show volumes:
+
+```bash id="d7lnvt"
+ls /var/lib/docker/volumes
+```
+
+Show build cache:
+
+```bash id="7f7h5h"
+docker system df
+```
+
+---
+
+# Key Takeaway
+
+Docker stores all images, containers, volumes, networks, and build cache under `/var/lib/docker`.
+
+Instead of manually exploring these files, use:
+
+```bash id="7tf9v0"
+docker history
+docker inspect
+docker system df
+dive
+```
+
+These tools provide a safer and clearer view of Docker internals.
+
 
