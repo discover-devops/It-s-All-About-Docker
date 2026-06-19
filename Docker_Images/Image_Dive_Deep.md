@@ -1615,4 +1615,914 @@ Docker is not a single component.
 When we run a container, Docker CLI talks to the Docker Daemon, which delegates to containerd. containerd uses runc to create an isolated process using Linux kernel features such as namespaces, cgroups, and OverlayFS. The result is a lightweight container running as a Linux process.
 
 
+---
+---
+---
+
+# Topic 7 
+
+
+# Resource Limits
+
+## Context
+
+Imagine a server running multiple containers:
+
+```text id="lw1ev6"
+Container A → Web Application
+
+Container B → Database
+
+Container C → Monitoring
+```
+
+Everything works fine.
+
+Suddenly Container A develops a memory leak and starts consuming more and more memory.
+
+Without limits:
+
+```text id="2d1pcg"
+Container A
+     ↓
+Consumes all memory
+     ↓
+Host becomes unstable
+     ↓
+Other containers affected
+```
+
+This is known as the:
+
+```text id="u2lkz4"
+Noisy Neighbor Problem
+```
+
+One container impacts everyone else.
+
+To prevent this, Docker provides Resource Limits.
+
+---
+
+## Why Resource Limits Matter
+
+Benefits:
+
+* Prevent resource starvation
+* Protect the host
+* Improve stability
+* Fair resource sharing
+* Predictable application behavior
+
+Think of resource limits as:
+
+```text id="jlr4zw"
+Container Quotas
+```
+
+Each container gets a defined amount of CPU and Memory.
+
+---
+
+# Memory Limits
+
+Limit a container to 512 MB:
+
+```bash id="o5jigx"
+docker run -d \
+--memory=512m \
+nginx
+```
+
+This means:
+
+```text id="zjygw4"
+Maximum Memory = 512 MB
+```
+
+---
+
+## What Happens If Limit Is Exceeded?
+
+Suppose:
+
+```text id="0v1vkg"
+Container Limit = 512 MB
+
+Application Uses = 700 MB
+```
+
+Linux Kernel intervenes.
+
+Result:
+
+```text id="5u0pj4"
+OOM Killer
+```
+
+The container process is terminated.
+
+OOM = Out Of Memory.
+
+---
+
+## Memory + Swap
+
+Example:
+
+```bash id="8sn6gz"
+docker run -d \
+--memory=512m \
+--memory-swap=1g \
+nginx
+```
+
+Meaning:
+
+```text id="qjlwmz"
+RAM      = 512 MB
+
+Swap     = 512 MB
+
+Total    = 1 GB
+```
+
+---
+
+## Recommended Approach
+
+First observe the application.
+
+Run:
+
+```bash id="jlwm1t"
+docker stats
+```
+
+Example:
+
+```text id="dlw5vx"
+Memory Usage
+
+250 MB
+280 MB
+310 MB
+```
+
+If peak usage is:
+
+```text id="w1r2f9"
+300 MB
+```
+
+Set:
+
+```text id="bdiknm"
+512 MB
+```
+
+This provides safety while preventing runaway memory usage.
+
+---
+
+# CPU Limits
+
+Docker provides two common approaches.
+
+---
+
+## CPU Shares (Relative Priority)
+
+Example:
+
+```bash id="u6czdi"
+docker run -d \
+--cpu-shares=512 \
+nginx
+```
+
+Default:
+
+```text id="blz8sr"
+1024
+```
+
+Interpretation:
+
+```text id="n1kk4f"
+Container A = 1024
+
+Container B = 512
+```
+
+Container A receives roughly twice the CPU share when contention occurs.
+
+Important:
+
+```text id="3cgw0x"
+CPU Shares are relative
+```
+
+They only matter when CPU is busy.
+
+---
+
+## CPU Quota (Hard Limit)
+
+Example:
+
+```bash id="kh7t1v"
+docker run -d \
+--cpus="1.5" \
+nginx
+```
+
+Meaning:
+
+```text id="ld2pdx"
+Maximum CPU Usage
+
+1.5 CPU Cores
+```
+
+Even if the host has idle CPUs available, the container cannot exceed this limit.
+
+---
+
+# Viewing Resource Usage
+
+Monitor containers live:
+
+```bash id="fqc9eb"
+docker stats
+```
+
+Example:
+
+```text id="y0b80h"
+CONTAINER    CPU %    MEM USAGE
+
+nginx        2.5%     18MB
+mysql       45.0%     420MB
+redis        1.2%     10MB
+```
+
+This is the first command every administrator should check during troubleshooting.
+
+---
+
+# Demonstration
+
+Start a limited container:
+
+```bash id="w9tzp5"
+docker run -d \
+--name web \
+--memory=128m \
+--cpus="0.5" \
+nginx
+```
+
+Inspect limits:
+
+```bash id="7zwxtv"
+docker inspect web
+```
+
+Monitor usage:
+
+```bash id="jby0mn"
+docker stats
+```
+
+Observe:
+
+```text id="56u5fx"
+CPU
+
+Memory
+
+Network
+
+Disk I/O
+```
+
+in real time.
+
+---
+
+# WOW Demonstration
+
+Show students that Docker is not enforcing limits itself.
+
+Run:
+
+```bash id="c57qbx"
+docker inspect web
+```
+
+Get container PID:
+
+```bash id="0wb55e"
+docker inspect -f '{{.State.Pid}}' web
+```
+
+Now:
+
+```bash id="ny8j7w"
+cat /proc/<PID>/cgroup
+```
+
+Explain:
+
+```text id="4ts24s"
+Linux cgroups
+```
+
+are actually enforcing CPU and memory limits.
+
+Docker merely configures them.
+
+The Linux kernel performs the enforcement.
+
+This usually surprises students because they realize:
+
+```text id="yynqba"
+Docker does not control resources.
+
+Linux Kernel does.
+```
+
+---
+
+# Interview Questions
+
+Question:
+
+What happens when a container exceeds its memory limit?
+
+Answer:
+
+```text id="0px1vj"
+OOM Killer terminates the process.
+```
+
+Question:
+
+Which Linux feature enforces resource limits?
+
+Answer:
+
+```text id="kq7ryv"
+cgroups
+```
+
+Question:
+
+What command shows live CPU and memory usage?
+
+Answer:
+
+```text id="jgwif4"
+docker stats
+```
+
+---
+
+# Key Takeaway
+
+Resource limits prevent a container from consuming excessive CPU and memory. Docker configures Linux cgroups to enforce these limits, ensuring system stability, fair resource sharing, and predictable application performance.
+
+
+
+---
+---
+---
+
+
+# Topic 8
+
+# Security Basics
+
+## Context
+
+Most developers focus on making containers work.
+
+Production engineers focus on making containers secure.
+
+Question:
+
+> If an attacker compromises a container, how much damage can they do?
+
+The answer depends on how securely the container is configured.
+
+Docker security follows a defense-in-depth approach.
+
+Think of security like an onion:
+
+```text id="hwg6sx"
+User
+   ↓
+Capabilities
+   ↓
+Seccomp
+   ↓
+AppArmor / SELinux
+   ↓
+Namespaces
+   ↓
+Linux Kernel
+```
+
+Multiple layers work together.
+
+---
+
+## Security Principle
+
+The most important rule:
+
+```text id="r1g8d3"
+Least Privilege
+```
+
+Give a container only the permissions it needs.
+
+Nothing more.
+
+---
+
+# Run as Non-Root User
+
+By default many containers run as:
+
+```bash id="u8msfh"
+root
+```
+
+Verify:
+
+```bash id="j77h6m"
+docker run -it ubuntu bash
+
+whoami
+```
+
+Output:
+
+```text id="t5jk6k"
+root
+```
+
+This is not ideal.
+
+---
+
+## Better Approach
+
+Dockerfile:
+
+```dockerfile id="zjvxvz"
+FROM nginx
+
+RUN useradd appuser
+
+USER appuser
+```
+
+Build and run:
+
+```bash id="g32rzm"
+whoami
+```
+
+Output:
+
+```text id="jlk5az"
+appuser
+```
+
+Now even if an attacker gains access, they are not root.
+
+---
+
+# Linux Capabilities
+
+Root inside a container is not the same as root on the host.
+
+Docker removes many dangerous capabilities by default.
+
+Examples removed:
+
+```text id="k5l2s6"
+Load Kernel Modules
+
+Change System Time
+
+Mount Filesystems
+
+Raw Device Access
+```
+
+---
+
+## View Capabilities
+
+Run:
+
+```bash id="n6hvls"
+docker run --rm ubuntu capsh --print
+```
+
+Students can see the active capabilities.
+
+---
+
+## Drop All Capabilities
+
+Most restrictive:
+
+```bash id="s8l4qv"
+docker run \
+--cap-drop ALL \
+nginx
+```
+
+Add only what is required.
+
+---
+
+# Read-Only Filesystem
+
+Make container filesystem immutable.
+
+Run:
+
+```bash id="p0s5go"
+docker run \
+--read-only \
+nginx
+```
+
+Benefits:
+
+* Cannot modify system files
+* Harder to install malware
+* Protects application binaries
+
+---
+
+# Minimal Images
+
+Avoid:
+
+```text id="2jpbq4"
+Full Ubuntu
+Full CentOS
+```
+
+Prefer:
+
+```text id="gh7ec8"
+Alpine
+Distroless
+```
+
+Smaller images:
+
+* Faster pulls
+* Smaller attack surface
+* Fewer vulnerabilities
+
+---
+
+# Security Checklist
+
+Before Production:
+
+✓ Run as non-root
+
+✓ Use minimal images
+
+✓ Avoid storing secrets in images
+
+✓ Set CPU and memory limits
+
+✓ Drop unnecessary capabilities
+
+✓ Use read-only filesystems
+
+✓ Enable health checks
+
+✓ Scan images for vulnerabilities
+
+---
+
+## Demonstration
+
+Check current user:
+
+```bash id="jlwmv0"
+whoami
+```
+
+Run non-root container:
+
+```bash id="q7b3kg"
+docker run \
+-u 1000 \
+ubuntu whoami
+```
+
+Enable read-only filesystem:
+
+```bash id="mjlwm4"
+docker run \
+--read-only \
+nginx
+```
+
+Attempt to create file:
+
+```bash id="w9l7yj"
+touch /tmp/test
+```
+
+Observe:
+
+```text id="sz72qj"
+Permission Denied
+```
+
+---
+
+## Key Takeaway
+
+Container security is based on least privilege. Run containers as non-root users, minimize permissions, use lightweight images, and restrict filesystem access wherever possible.
+
+
+---
+---
+---
+
+
+# Topic 9
+
+# Security Basics
+
+## Context
+
+Most developers focus on making containers work.
+
+Production engineers focus on making containers secure.
+
+Question:
+
+> If an attacker compromises a container, how much damage can they do?
+
+The answer depends on how securely the container is configured.
+
+Docker security follows a defense-in-depth approach.
+
+Think of security like an onion:
+
+```text id="hwg6sx"
+User
+   ↓
+Capabilities
+   ↓
+Seccomp
+   ↓
+AppArmor / SELinux
+   ↓
+Namespaces
+   ↓
+Linux Kernel
+```
+
+Multiple layers work together.
+
+---
+
+## Security Principle
+
+The most important rule:
+
+```text id="r1g8d3"
+Least Privilege
+```
+
+Give a container only the permissions it needs.
+
+Nothing more.
+
+---
+
+# Run as Non-Root User
+
+By default many containers run as:
+
+```bash id="u8msfh"
+root
+```
+
+Verify:
+
+```bash id="j77h6m"
+docker run -it ubuntu bash
+
+whoami
+```
+
+Output:
+
+```text id="t5jk6k"
+root
+```
+
+This is not ideal.
+
+---
+
+## Better Approach
+
+Dockerfile:
+
+```dockerfile id="zjvxvz"
+FROM nginx
+
+RUN useradd appuser
+
+USER appuser
+```
+
+Build and run:
+
+```bash id="g32rzm"
+whoami
+```
+
+Output:
+
+```text id="jlk5az"
+appuser
+```
+
+Now even if an attacker gains access, they are not root.
+
+---
+
+# Linux Capabilities
+
+Root inside a container is not the same as root on the host.
+
+Docker removes many dangerous capabilities by default.
+
+Examples removed:
+
+```text id="k5l2s6"
+Load Kernel Modules
+
+Change System Time
+
+Mount Filesystems
+
+Raw Device Access
+```
+
+---
+
+## View Capabilities
+
+Run:
+
+```bash id="n6hvls"
+docker run --rm ubuntu capsh --print
+```
+
+Students can see the active capabilities.
+
+---
+
+## Drop All Capabilities
+
+Most restrictive:
+
+```bash id="s8l4qv"
+docker run \
+--cap-drop ALL \
+nginx
+```
+
+Add only what is required.
+
+---
+
+# Read-Only Filesystem
+
+Make container filesystem immutable.
+
+Run:
+
+```bash id="p0s5go"
+docker run \
+--read-only \
+nginx
+```
+
+Benefits:
+
+* Cannot modify system files
+* Harder to install malware
+* Protects application binaries
+
+---
+
+# Minimal Images
+
+Avoid:
+
+```text id="2jpbq4"
+Full Ubuntu
+Full CentOS
+```
+
+Prefer:
+
+```text id="gh7ec8"
+Alpine
+Distroless
+```
+
+Smaller images:
+
+* Faster pulls
+* Smaller attack surface
+* Fewer vulnerabilities
+
+---
+
+# Security Checklist
+
+Before Production:
+
+✓ Run as non-root
+
+✓ Use minimal images
+
+✓ Avoid storing secrets in images
+
+✓ Set CPU and memory limits
+
+✓ Drop unnecessary capabilities
+
+✓ Use read-only filesystems
+
+✓ Enable health checks
+
+✓ Scan images for vulnerabilities
+
+---
+
+## Demonstration
+
+Check current user:
+
+```bash id="jlwmv0"
+whoami
+```
+
+Run non-root container:
+
+```bash id="q7b3kg"
+docker run \
+-u 1000 \
+ubuntu whoami
+```
+
+Enable read-only filesystem:
+
+```bash id="mjlwm4"
+docker run \
+--read-only \
+nginx
+```
+
+Attempt to create file:
+
+```bash id="w9l7yj"
+touch /tmp/test
+```
+
+Observe:
+
+```text id="sz72qj"
+Permission Denied
+```
+
+---
+
+## Key Takeaway
+
+Container security is based on least privilege. Run containers as non-root users, minimize permissions, use lightweight images, and restrict filesystem access wherever possible.
 
