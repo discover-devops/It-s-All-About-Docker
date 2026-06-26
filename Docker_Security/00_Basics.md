@@ -1,13 +1,16 @@
-I actually think you've identified the missing foundation of the entire chapter.
+**Concept → Daily Life Story → Then Docker**
 
-If I were sitting in your class as a fresher or a non-IT student, my first question would be:
+**Vulnerability** → "Your house has an old lock that can be opened with a credit card. That old lock is a vulnerability. You don't need to be a criminal to understand that — you just need to know the lock is weak."
 
-> **"Why would anyone attack a Docker container in the first place?"**
+**Malicious** → "Imagine someone rings your doorbell pretending to be a delivery person, but they actually want to see inside your house. That 'pretending' is malicious intent."
 
-The document assumes students already understand cybersecurity. But many of your students won't. So before you even show the attack diagram, I would spend 10–15 minutes building that context.
+**Attack** → "When that fake delivery person actually tries to open your door — that's the attack."
 
-Here's how I would teach it.
+**Exploit** → "When they succeed because your lock was weak — that's exploiting the vulnerability."
 
+**Patch / Fix** → "You replace the lock. That's the patch."
+
+---
 ---
 
 When we hear the word **attack**, many people imagine a hacker wearing a hoodie typing very fast and somehow magically breaking into computers. That is not what an attack means.
@@ -50,7 +53,9 @@ The next question is:
 
 Students often think hacking is only done "for fun." In reality, most attacks today have financial or strategic motives.
 
-Some attackers want to steal customer information such as usernames, passwords, credit card numbers, or medical records. Others deploy ransomware and demand money to unlock the systems. Some install cryptocurrency miners and secretly use your servers to generate cryptocurrency. In corporate environments, attackers may steal intellectual property or source code. In nation-state attacks, the objective may be espionage or disrupting critical infrastructure.
+Some attackers want to steal customer information such as usernames, passwords, credit card numbers, or medical records. Others deploy ransomware and demand money to unlock the systems. 
+Some install cryptocurrency miners and secretly use your servers to generate cryptocurrency. 
+In corporate environments, attackers may steal intellectual property or source code. In nation-state attacks, the objective may be espionage or disrupting critical infrastructure.
 
 In almost every case, there is a business motive behind the attack.
 
